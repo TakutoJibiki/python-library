@@ -5,6 +5,9 @@ def sort_filename(filenames):
     
     連番のファイル名を数値の昇順にソートする
 
+    Args:
+        filenames (list): 複数のファイル名からなるリスト
+
     Note:
         0.csv, 1.csv, ..., 10.csv の場合，文字列のままソートすると
         0, 1, 10, ... となってしまい，ファイル名の数値の順にならない．
