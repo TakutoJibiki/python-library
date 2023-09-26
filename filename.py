@@ -16,16 +16,11 @@ def sort_filename(filenames):
     """
     temp = []
     for filename in filenames:
-        if '\\' in filename:
-            filename_num = int(filename.split('\\')[-1].split('.')[0])
-            temp.append([filename_num, filename])
-        elif '/' in filename:
-            filename_num = int(filename.split('/')[-1].split('.')[0])
-            temp.append([filename_num, filename])
+        assert '.' in filename
+        filename_num = int(os.path.basename(filename).split('.')[0])
+        temp.append([filename_num, filename])
     temp.sort()
-
-    ret = [i[1] for i in temp]
-    return ret
+    return [i[1] for i in temp]
 
 
 def rename(directory, start_index):
@@ -41,10 +36,9 @@ def rename(directory, start_index):
     cnt = start_index
     for file in sort_filename(glob.glob(f'{directory}/*')):
         assert not '#' in file
-        separator = '\\' if '\\' in file else '/'
-        pre = separator.join(file.split(separator)[:-1])
-        extention = file.split('.')[-1]
-        os.rename(src=file, dst=f'{pre}{separator}#{cnt}.{extention}')
+        pre = os.path.dirname(file)
+        ext = os.path.splitext(file)[-1]
+        os.rename(src=file, dst=f'{pre}{os.path.sep}#{cnt}{ext}')
         cnt += 1
 
     for file in glob.glob(f'{directory}/*'):
