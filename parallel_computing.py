@@ -37,10 +37,8 @@ def wrapper(process_num, query):
     result = []
     for i, arg in enumerate(query):
         result.append(func(arg))
-        if VERBOSE and process_num < 5:
-            msg = "\r" + "\t\t"*process_num + f'{i+1} / {len(query)}'
-            if process_num == 4 and MAX_PROCESS_NUM > 5: msg += "     ..."
-            print(msg, end="")
+        if VERBOSE and process_num == 0:
+            print("\r" + "\t"*8 + f'{i+1} / {len(query)} ', end="\r")
     return result
 
 
@@ -64,7 +62,6 @@ def handler():
         end = sum(process_num[:i+1])
         p = pool.apply_async(wrapper, args=[i, query[start:end]])
         processes.append(p)
-    if VERBOSE: print(f'processing {len(query)} individuals')
 
     # 各プロセスの終了を順番に待つ
     result = []
@@ -73,7 +70,6 @@ def handler():
             result += processes[0].get()
             processes.pop(0)
 
-    print()
     pickle_write(result)
 
 
