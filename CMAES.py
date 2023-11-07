@@ -4,14 +4,14 @@ from deap import base, cma, creator
 
 
 class CMAES:
-    def __init__(self, dim, obj_func, lambda_=None, init_centroid=None, init_sigma=1.0, seed=42):
+    def __init__(self, dim, obj_func, lambda_=None, init_centroid=np.array([]), init_sigma=1.0, seed=42):
         # 乱数のシードを指定
         np.random.seed(seed)
 
         # メンバの設定
         self._dim = dim
         lambda_ = math.floor(4 + 3*math.log(self._dim)) if lambda_ == None else lambda_
-        init_centroid = [0.0]*self._dim if init_centroid == None else init_centroid
+        init_centroid = np.zeros((self._dim)) if init_centroid.shape[0] == 0 else init_centroid
         self._obj_func = obj_func
         self._population = None
         self._best_eval = None
@@ -29,12 +29,12 @@ class CMAES:
         self._toolbox.register("generate", self._strategy.generate, creator.Individual)
         self._toolbox.register("update", self._strategy.update)
 
-    def step(self):
+    def generation_step(self):
         # 新たな世代の個体群を生成
         self._population = self._toolbox.generate()
 
         # 個体群の評価
-        self._evals = self._obj_func(self._population)
+        self._evals = self._obj_func(np.array(self._population))
         for i, ind in enumerate(self._population):
             ind.fitness.values = self._evals[i],
 
@@ -52,7 +52,7 @@ class CMAES:
     
     @property
     def evals(self):
-        return self._evals
+        return np.array(self._evals)
     
     @property
     def elite_eval(self):
@@ -65,15 +65,15 @@ class CMAES:
     @property
     def population(self):
         if self._population == None: return None
-        return [[i for i in ind] for ind in self._population]
+        return np.array([[i for i in ind] for ind in self._population])
     
     @property
     def elite_ind(self):
-        return self.population[self._evals.index(min(self._evals))]
+        return self.population[np.argmin(self._evals)]
     
     @property
     def best_ind(self):
-        return self._best_ind
+        return np.array(self._best_ind)
 
 
 if __name__ == "__main__":
@@ -85,6 +85,6 @@ if __name__ == "__main__":
 
     cmaes = CMAES(dim=2, obj_func=obj_func)
     while cmaes.sigma > 1E-3:
-        cmaes.step()
+        cmaes.generation_step()
         print(f'{cmaes.elite_eval} | {cmaes.elite_ind}')
     print(f'{cmaes.best_eval} | {cmaes.best_ind}')
