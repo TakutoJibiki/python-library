@@ -3,16 +3,13 @@ from glob import glob
 import pandas as pd
 import matplotlib.pyplot as plt
 import os, shutil
+from filename import sort_filename
 
 def make_gif(dir, gif_name, sampling=1, duration=100):
     assert type(sampling) == int
 
-    # 拡張子
-    files = glob(f'{dir}/*')
-    ext = files[0].split('.')[-1]
-
-    # サンプリング
-    files = [f'{dir}/{i}.{ext}' for i in range(len(files)) if i%sampling==0]
+    files = sort_filename(glob(f'{dir}/*.png'))
+    files = [files[i] for i in range(0, len(files), sampling)]  # サンプリング
 
     images = list(map(lambda file : Image.open(file) , files))
     images[0].save(
@@ -57,4 +54,5 @@ def make_gif_from_csv(csv_path, gif_name, header=None, labels=None, marker=None,
 
 
 if __name__ == '__main__':
-    make_gif_from_csv(csv_path='4500.csv', gif_name='anim.gif', header=0, labels=['$H$', '$B$'], duration=300, marker='')
+    make_gif(dif='tmp', gif_name='anim.gif')
+    # make_gif_from_csv(csv_path='4500.csv', gif_name='anim.gif', header=0, labels=['$H$', '$B$'], duration=300, marker='')
