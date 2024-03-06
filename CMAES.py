@@ -1,17 +1,21 @@
-import math
 import numpy as np
 from deap import base, cma, creator
 
 
 class CMAES:
-    def __init__(self, dim, obj_func, lambda_=None, init_centroid=np.array([]), init_sigma=1.0, seed=42):
+    def __init__(self, obj_func, centroid, sigma, seed=42):
+        """
+        
+        Note:
+            最適解が [a, b] の範囲に存在する場合，centroid と sigma の推奨値は下記の通り
+            centroid (list): [a, b] の一様乱数
+            sigma (float): 0.3*(b-a)
+
+        """
         # 乱数のシードを指定
         np.random.seed(seed)
 
         # メンバの設定
-        self._dim = dim
-        lambda_ = math.floor(4 + 3*math.log(self._dim)) if lambda_ == None else lambda_
-        init_centroid = np.zeros((self._dim)) if init_centroid.shape[0] == 0 else init_centroid
         self._obj_func = obj_func
         self._population = None
         self._best_eval = None
@@ -19,10 +23,11 @@ class CMAES:
 
         # アルゴリズム初期化
         self._strategy = cma.Strategy(
-            centroid=init_centroid,
-            sigma=init_sigma,
-            lambda_=lambda_,
+            centroid=np.array(centroid),
+            sigma=sigma,
         )
+
+        # 設定
         self._toolbox = base.Toolbox()
         creator.create("FitnessMin", base.Fitness, weights=(-1.0,))
         creator.create("Individual", list, fitness=creator.FitnessMin)
@@ -83,7 +88,12 @@ if __name__ == "__main__":
             ret.append((x-3)**2 + (y+1)**2)
         return ret
 
-    cmaes = CMAES(dim=2, obj_func=obj_func)
+    cmaes = CMAES(
+        obj_func=obj_func,
+        centroid=[0]*2,
+        sigma=0.3*(5-(-5)),
+    )
+    
     while cmaes.sigma > 1E-3:
         cmaes.generation_step()
         print(f'{cmaes.elite_eval} | {cmaes.elite_ind}')
