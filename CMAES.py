@@ -4,7 +4,7 @@ import copy
 
 
 class CMAES:
-    def __init__(self, obj_func, centroid: list, sigma: float):
+    def __init__(self, obj_func, centroid: list, sigma: float, lambda_: int = None):
         """
         
         CMA-ES で obj_func を最大化する ind を探す．
@@ -16,6 +16,7 @@ class CMAES:
                     return [-((x-3)**2 + (y+1)**2) for x, y in args]
             centroid (list): 探索範囲の中心（共分散行列の平均ベクトル）の初期値．
             sigma (float): ステップサイズの初期値．
+            lambda_ (int): 集団サイズ．何も指定しなかったら int(4+3*ln(N)) が指定される．
 
         Note:
             最適解が [a, b] の範囲に存在する場合，centroid と sigma の推奨値は下記の通り
@@ -30,10 +31,17 @@ class CMAES:
         self._best_ind = None
 
         # アルゴリズム初期化
-        self._strategy = cma.Strategy(
-            centroid=np.array(centroid),
-            sigma=sigma,
-        )
+        if lambda_ is not None:
+            self._strategy = cma.Strategy(
+                centroid=np.array(centroid),
+                sigma=sigma,
+                lambda_=lambda_,
+            )
+        else:
+            self._strategy = cma.Strategy(
+                centroid=np.array(centroid),
+                sigma=sigma,
+            )
 
         # 設定
         self._toolbox = base.Toolbox()
