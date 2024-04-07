@@ -4,7 +4,8 @@ import copy
 
 
 class CMAES:
-    def __init__(self, obj_func, centroid: list, sigma: float, lambda_: int = None):
+    def __init__(self, obj_func, search_intervals: list,
+                 constraints: list = None, lambda_: int = None):
         """
         
         CMA-ES で obj_func を最大化する ind を探す．
@@ -14,34 +15,37 @@ class CMAES:
             obj_func (function): 最大化する目的関数．複数の個体を同時に受け取れるように実装する．以下に例を示す．
                 def obj_func(args):
                     return [-((x-3)**2 + (y+1)**2) for x, y in args]
-            centroid (list): 探索範囲の中心（共分散行列の平均ベクトル）の初期値．
-            sigma (float): ステップサイズの初期値．
+            search_intervals (list): 重点的に探索する範囲 [a_i, b_i]^n．以下に例を示す．
+                [
+                    [a_1, b_1],
+                    [a_2, b_2],
+                    ...
+                ]
+            constraints (list): boolean のリスト．True を指定すると search_interval の範囲内で探索する．範囲を超えるとペナルティを課す．
             lambda_ (int): 集団サイズ．何も指定しなかったら int(4+3*ln(N)) が指定される．
 
-        Note:
-            最適解が [a, b] の範囲に存在する場合，centroid と sigma の推奨値は下記の通り
-            centroid (list): [a, b] の一様乱数
-            sigma (float): 0.3*(b-a)
-
         """
+        # デフォルト値，エラーチェック
+        for a, b in search_intervals: assert a < b
+        if constraints is None: constraints = [False] * len(search_intervals)
+        else: assert len(search_intervals) == len(constraints)
+        if lambda_ is None: lambda_ = int(4 + 3 * np.log(len(search_intervals)))
+        assert constraints is None, "制約付きは未実装"
+
         # メンバの設定
         self._obj_func = obj_func
         self._population = None
         self._best_eval = None
         self._best_ind = None
-
+        self._search_int = search_intervals
+        self._constraints = constraints
+            
         # アルゴリズム初期化
-        if lambda_ is not None:
-            self._strategy = cma.Strategy(
-                centroid=np.array(centroid),
-                sigma=sigma,
-                lambda_=lambda_,
-            )
-        else:
-            self._strategy = cma.Strategy(
-                centroid=np.array(centroid),
-                sigma=sigma,
-            )
+        self._strategy = cma.Strategy(
+            centroid=np.random.rand(len(search_intervals)),
+            sigma=0.3,  # search interval を [0, 1] に正規化する前提
+            lambda_=lambda_,
+        )
 
         # 設定
         self._toolbox = base.Toolbox()
@@ -50,6 +54,21 @@ class CMAES:
         self._toolbox.register("generate", self._strategy.generate, creator.Individual)
         self._toolbox.register("update", self._strategy.update)
 
+    def _scale(self, pop: list):
+        """
+        
+        [0, 1] を [a_i, b_i] にスケールする
+
+        """
+        ret = list()
+        for i in range(len(pop)):
+            ind = list()
+            for j in range(len(pop[i])):
+                a, b = self._search_int[j]
+                ind.append(pop[i][j]*(b-a)+a)
+            ret.append(ind)
+        return ret
+    
     def generation_step(self):
         # 新たな世代の個体群を生成
         self._population = self._toolbox.generate()
@@ -84,7 +103,8 @@ class CMAES:
 
         """
         if self._population == None: return None
-        return [[i for i in ind] for ind in self._population]
+        ret = [[i for i in ind] for ind in self._population]
+        return self._scale(ret)
 
     @property
     def elite_eval(self):
@@ -98,7 +118,8 @@ class CMAES:
     def elite_ind(self):
         fits = [ind.fitness for ind in self._population]
         elite_id = fits.index(max(fits))
-        return [i for i in self._population[elite_id]]
+        ret = [i for i in self._population[elite_id]]
+        return self._scale([ret])[0]
     
     @property
     def best_ind(self):
@@ -115,8 +136,7 @@ if __name__ == "__main__":
 
     cmaes = CMAES(
         obj_func=obj_func,
-        centroid=[0]*2,
-        sigma=0.3*(5-(-5)),
+        search_intervals=[[-10, 10], [-10, 10]],
     )
     
     for gen in range(50):
