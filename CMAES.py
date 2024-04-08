@@ -4,8 +4,12 @@ import copy
 
 
 class CMAES:
-    def __init__(self, obj_func, search_intervals: list,
-                 constraints: list = None, lambda_: int = None):
+    def __init__(self,
+                 obj_func,
+                 search_intervals: list,
+                 constraints: list = None,
+                 penalty: float = None,
+                 lambda_: int = None):
         """
         
         CMA-ES で obj_func を最大化する ind を探す．
@@ -22,23 +26,29 @@ class CMAES:
                     ...
                 ]
             constraints (list): boolean のリスト．True を指定すると search_interval の範囲内で探索する．範囲を超えるとペナルティを課す．
+            penalty (float): 制約違反時のペナルティのベース．実際にはこの値に違反量を加算してペナルティとする．制約を満たす範囲での最悪の評価値を指定すればよい．
             lambda_ (int): 集団サイズ．何も指定しなかったら int(4+3*ln(N)) が指定される．
 
         """
-        # デフォルト値，エラーチェック
+        # エラーチェック
         for a, b in search_intervals: assert a < b
+        assert (constraints is None and penalty is None) \
+            or (constraints is not None and penalty is not None)
+
+        # デフォルト値
         if constraints is None: constraints = [False] * len(search_intervals)
         else: assert len(search_intervals) == len(constraints)
         if lambda_ is None: lambda_ = int(4 + 3 * np.log(len(search_intervals)))
-        assert constraints is None, "制約付きは未実装"
 
         # メンバの設定
         self._obj_func = obj_func
         self._population = None
         self._best_eval = None
         self._best_ind = None
+        self._feasible_num = None
         self._search_int = search_intervals
         self._constraints = constraints
+        self._penalty = penalty
             
         # アルゴリズム初期化
         self._strategy = cma.Strategy(
@@ -70,11 +80,40 @@ class CMAES:
         return ret
     
     def generation_step(self):
+        is_feasible_ = lambda x, constraint: 0.0 <= x <= 1.0 or constraint == False
+
+        def is_feasible(ind):
+            ret = [is_feasible_(i, c) for i, c in zip(ind, self._constraints)]
+            return all(ret)
+        
+        def distance(ind):
+            ret = 0
+            for i, c in zip(ind, self._constraints):
+                if not is_feasible_(i, c): ret += abs(i-0.5)
+            return ret*abs(self._penalty)
+        
         # 新たな世代の個体群を生成
         self._population = self._toolbox.generate()
 
         # 個体群の評価
-        self._evals = self._obj_func(self.population)
+        self._evals = list()
+        feasible_inds = list()
+        for ind in self._population:
+            if is_feasible(ind):
+                self._evals.append(None)
+                feasible_inds.append(ind)
+            else:
+                self._evals.append(self._penalty - distance(ind))
+        self._feasible_num = self._evals.count(None)
+        feasible_evals = self._obj_func(self._scale(feasible_inds))
+        assert len(feasible_evals) == self._feasible_num
+        for i in range(len(self._evals)):
+            if self._evals[i] is None:
+                self._evals[i] = feasible_evals.pop(0)
+        assert self._evals.count(None) == 0
+        assert len(feasible_evals) == 0
+
+        # 評価値を反映
         for i, ind in enumerate(self._population):
             ind.fitness.values = self._evals[i],
 
@@ -124,6 +163,10 @@ class CMAES:
     @property
     def best_ind(self):
         return self._best_ind
+    
+    @property
+    def feasible_num(self):
+        return self._feasible_num
 
 
 if __name__ == "__main__":
@@ -136,7 +179,9 @@ if __name__ == "__main__":
 
     cmaes = CMAES(
         obj_func=obj_func,
-        search_intervals=[[-10, 10], [-10, 10]],
+        search_intervals=[[-10, 0], [-10, 10]],
+        constraints=[True, False],
+        penalty=-300,
     )
     
     for gen in range(50):
@@ -144,6 +189,7 @@ if __name__ == "__main__":
         print(
             f'\rGen. {format(gen+1, "0>3")}  |  ' +
             '{:.3e}  |  '.format(cmaes.elite_eval) +
+            f'{format(cmaes.feasible_num, "0>2")} / {format(len(cmaes.population), "0>2")} | '
             f'{cmaes.elite_ind}'
         )
     print(f'{cmaes.best_eval} | {cmaes.best_ind}')
