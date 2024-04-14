@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 
 class File:
     @staticmethod
-    def sort_filename(filenames):
+    def sort_filename(filenames: list):
         """
         
         連番のファイル名を数値の昇順にソートする
@@ -30,7 +30,7 @@ class File:
         return [i[1] for i in temp]
 
     @staticmethod
-    def rename(directory, start_index):
+    def rename(directory: str, start_index: int):
         """
         
         指定した番号スタートの連番にリネーム
@@ -53,7 +53,7 @@ class File:
             os.rename(src=file, dst=file.replace('#', ''))
 
     @staticmethod
-    def mkdir(path, delete=True):
+    def mkdir(path: str, delete: bool):
         """
         
         ディレクトリが存在していたら削除して作り直す
