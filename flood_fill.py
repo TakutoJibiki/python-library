@@ -57,6 +57,7 @@ class FloodFill:
 
         assert direction in [4, 8], "direction must be 4 or 8."
         tcolor = arr[begin_y, begin_x]
+        if tcolor == rcolor: return
         if filename: fig, imgs = FloodFill._gif_init()
         execute_fill(arr, begin_y, begin_x, tcolor, rcolor, direction)
         if filename: FloodFill._gif_save(fig=fig, imgs=imgs, filename=filename)
@@ -79,6 +80,7 @@ class FloodFill:
         """
         assert direction in [4, 8], "direction must be 4 or 8."
         tcolor = arr[begin_y, begin_x]
+        if tcolor == rcolor: return
         if filename: fig, imgs = FloodFill._gif_init()
         q = deque()
         q.append((begin_y, begin_x))
