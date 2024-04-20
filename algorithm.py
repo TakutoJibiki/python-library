@@ -86,7 +86,7 @@ class FloodFill:
             direction: int, filename: str = None):
         """
 
-        FloodFill のスタックによる実装（開始位置に隣接するマスを rcolor に塗りつぶす）．
+        FloodFill のスタックによる実装（開始位置に隣接する同色のマスを rcolor に塗りつぶす）．
 
         Args:
             arr (np.ndarray): 塗りつぶしを行う対象の二次元配列
@@ -124,7 +124,7 @@ class FloodFill:
               direction: int, filename: str = None):
         """
 
-        FloodFill のキューによる実装（開始位置に隣接するマスを rcolor に塗りつぶす）．
+        FloodFill のキューによる実装（開始位置に隣接する同色のマスを rcolor に塗りつぶす）．
 
         Args:
             arr (np.ndarray): 塗りつぶしを行う対象の二次元配列
