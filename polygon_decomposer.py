@@ -30,6 +30,33 @@ class PolygonDecomposer():
                 )
         return img
 
+    @staticmethod
+    def is_polygon_inside(points_: list[tuple[float, float]], judge_point: tuple[float, float]):
+        """
+        
+        時計回りに与えられる頂点座標からなる多角形に対して内外判定する (Winding Number Algorithm)
+        
+        """
+        if judge_point in points_: return True
+        EPS = 1E-6
+        theta = 0
+        points = copy.deepcopy(points_)
+        points = points + [points[0]]
+        x0, y0 = judge_point
+        for i in range(len(points)-1):
+            x1, y1 = points[i]
+            x2, y2 = points[i+1]
+            ax, ay = x1-x0, y1-y0
+            bx, by = x2-x0, y2-y0
+            norms = np.hypot(ax, ay)*np.hypot(bx, by)
+            cos = (ax*bx+ay*by) / norms
+            if 1.0 < abs(cos) < 1.0+EPS:
+                cos = 1.0 if cos > 0 else -1.0
+            angle = np.arccos(cos)
+            theta = theta+angle if ax*by-ay*bx<0 else theta-angle
+        wn = theta / (2.0*np.pi)
+        return wn > 1.0-EPS
+
     @classmethod
     def _extract_boundary_vertices(cls, img: np.ndarray):
         """
@@ -160,4 +187,12 @@ if __name__ == '__main__':
     geometry = PolygonDecomposer.decompose(original)
     restored = PolygonDecomposer.draw_from_polygons(original.shape, geometry)
     print(np.array_equal(original, restored))   # x+, y+ 側の座標値は開区間としているため一致しない
-    
+
+
+    import matplotlib.pyplot as plt
+    from matplotlib import colors
+    for i, polygons in enumerate(geometry):
+        for polygon in polygons:
+            polygon = polygon + [polygon[0]]
+            plt.plot([x for x, _ in polygon], [y for _, y in polygon], color=list(colors.TABLEAU_COLORS.values())[i])
+    plt.show()
