@@ -162,6 +162,10 @@ def save_result(paths: dict, gen: int, cmaes, history: History,
     with open(paths["time_path"], mode='a') as f:
         f.write(str(elapsed_time)+'\n')
 
+    # 制約を満たす（解析した）個体数
+    with open(paths["feasible_num_path"], mode='a') as f:
+        f.write(str(cmaes.feasible_num)+'\n')
+
 
 if __name__ == '__main__':
     from IO import list_to_str, str_to_list
