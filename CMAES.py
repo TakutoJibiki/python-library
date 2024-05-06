@@ -105,7 +105,7 @@ class CMAES:
             else:
                 self._evals.append(self._penalty - distance(ind))
         self._feasible_num = self._evals.count(None)
-        feasible_evals = self._obj_func(self._scale(feasible_inds))
+        feasible_evals = self._obj_func(self._scale(feasible_inds)) if len(feasible_inds) != 0 else list()
         assert len(feasible_evals) == self._feasible_num
         for i in range(len(self._evals)):
             if self._evals[i] is None:
