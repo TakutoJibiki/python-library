@@ -17,7 +17,8 @@ def list_to_str(list_):
         dict や set は扱えない．
 
     """
-    assert type(list_) in {list, tuple, np.ndarray}, '引数にはリストを指定してください'
+    if type(list_) == str: print("str には未対応です")
+    assert type(list_) in {list, tuple, np.ndarray, float, int}, '引数にはリストを指定してください'
     if type(list_) == np.ndarray: list_ = list_.tolist()
 
     with io.StringIO() as ios:
