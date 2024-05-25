@@ -65,11 +65,11 @@ class NGnet:
             assert all([a < b for a, b in [x_range, y_range]])  # 乱数生成の範囲
             generate = lambda ranges: [np.random.rand()*(b-a)+a for a, b in ranges]
             mux, muy, sx, sy, theta = generate([
-                [x_range[0], x_range[1]],       # mux
-                [y_range[0], y_range[1]],       # muy
-                [1E-3, x_range[1]-x_range[0]],  # sx
-                [1E-3, y_range[1]-y_range[0]],  # sy
-                [0, np.pi],                     # theta
+                [x_range[0], x_range[1]],               # mux
+                [y_range[0], y_range[1]],               # muy
+                [1E-3, (x_range[1]-x_range[0])*0.5],    # sx
+                [1E-3, (y_range[1]-y_range[0])*0.5],    # sy
+                [0, np.pi],                             # theta
             ])
             return NGnet.Basis(mux=mux, muy=muy, sx=sx, sy=sy, theta=theta)
 
@@ -101,8 +101,10 @@ class NGnet:
                 lw=1,
             )
             ax.axis('square')
-            ax.set_xlim(x_min-2, x_max+2)
-            ax.set_ylim(y_min-2, y_max+2)
+            x_margin = (x_max-x_min)*0.1
+            y_margin = (y_max-y_min)*0.1
+            ax.set_xlim(x_min-x_margin, x_max+x_margin)
+            ax.set_ylim(y_min-y_margin, y_max+y_margin)
             ax.set_xticks([])
             ax.set_yticks([])
             plt.gca().spines['right'].set_visible(False)
@@ -116,8 +118,8 @@ class NGnet:
             ax_basis.scatter(basis.mux, basis.muy, color='black', s=10)
             ax_basis.add_patch(patches.Ellipse(
                 xy=(basis.mux, basis.muy),
-                width=basis.sx,
-                height=basis.sy,
+                width=basis.sx*2,   # 楕円の「直径」
+                height=basis.sy*2,
                 angle=basis.theta*180/np.pi,
                 fill=None,
                 ec='red',
@@ -136,18 +138,35 @@ class NGnet:
 
 
 if __name__ == '__main__':
-    np.random.seed(47)
-    DESIGN_SIZE = 10
-    X = np.arange(-DESIGN_SIZE, DESIGN_SIZE+0.1, 0.1)
-    Y = np.arange(-DESIGN_SIZE, DESIGN_SIZE+0.1, 0.1)
-    X, Y = np.meshgrid(X, Y)
+    np.random.seed(42)
 
-    bases = [NGnet.Basis.randomly_generate(
-        x_range=[-DESIGN_SIZE, DESIGN_SIZE],
-        y_range=[-DESIGN_SIZE, DESIGN_SIZE],
-    ) for _ in range(9)]
-    weights = [1, 2,-3,-4,-5,-6, 7, 8, 7]
+    def basic_sample():
+        # 位置と半径を固定
+        X = np.arange(-15E-3, 15E-3+0.075E-3-0.001E-3, 0.075E-3)
+        Y = np.arange(12E-3, 44.4E-3+0.075E-3-0.001E-3, 0.075E-3)
+        X, Y = np.meshgrid(X, Y)
+        STDEV = 0.003850402576354841
+        BASIS_MUS = [[-0.013,0.014], [-0.013,0.01968], [-0.013,0.02536], [-0.013,0.031039999999999998], [-0.013,0.03672], [-0.013,0.0424], [-0.0078,0.014], [-0.0078,0.01968], [-0.0078,0.02536], [-0.0078,0.031039999999999998], [-0.0078,0.03672], [-0.0078,0.0424], [-0.0026,0.014], [-0.0026,0.01968], [-0.0026,0.02536], [-0.0026,0.031039999999999998], [-0.0026,0.03672], [-0.0026,0.0424], [0.0026,0.014], [0.0026,0.01968], [0.0026,0.02536], [0.0026,0.031039999999999998], [0.0026,0.03672], [0.0026,0.0424], [0.0078,0.014], [0.0078,0.01968], [0.0078,0.02536], [0.0078,0.031039999999999998], [0.0078,0.03672], [0.0078,0.0424], [0.013,0.014], [0.013,0.01968], [0.013,0.02536], [0.013,0.031039999999999998], [0.013,0.03672], [0.013,0.0424]]
+        bases = [NGnet.Basis(mux=mux, muy=muy, r=STDEV) for mux, muy in BASIS_MUS]
+        ngnet = NGnet(bases)
+        dist = ngnet.get_dist(X=X, Y=Y, weights=[np.random.rand()*10-5 for _ in range(len(bases))])
+        NGnet.plot(X=X, Y=Y, bases=bases, shape_bin=dist)
 
-    ngnet = NGnet(bases)
-    dist = ngnet.get_dist(X=X, Y=Y, weights=weights)
-    NGnet.plot(X=X, Y=Y, bases=bases, shape_bin=dist)
+    def generalized_sample():
+        # 位置を半径を可変（一般化）
+        DESIGN_SIZE = 10
+        X = np.arange(-DESIGN_SIZE, DESIGN_SIZE+0.1, 0.1)
+        Y = np.arange(-DESIGN_SIZE, DESIGN_SIZE+0.1, 0.1)
+        X, Y = np.meshgrid(X, Y)
+        bases = [NGnet.Basis.randomly_generate(
+            x_range=[-DESIGN_SIZE, DESIGN_SIZE],
+            y_range=[-DESIGN_SIZE, DESIGN_SIZE],
+        ) for _ in range(9)]
+        weights = [1, 2,-3,-4,-5,-6, 7, 8, 7]
+        ngnet = NGnet(bases)
+        dist = ngnet.get_dist(X=X, Y=Y, weights=weights)
+        NGnet.plot(X=X, Y=Y, bases=bases, shape_bin=dist)
+
+    # basic_sample()
+    generalized_sample()
+    
