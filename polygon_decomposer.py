@@ -79,7 +79,7 @@ class PolygonDecomposer():
         # 各グループを代表する座標を取得
         begins = list()
         for group in uf.all_group_members().values():
-            if img[to_(group[0])] == 255: begins.append(to_(group[0]))
+            if img[to_(min(group))] == 255: begins.append(to_(min(group)))
         
         # 境界の節点を抽出
         return [cls._extract_boundary_vertex(img, begin) for begin in begins]
@@ -91,6 +91,19 @@ class PolygonDecomposer():
         入力された二値画像のうち，指定された座標 (begin) を含む領域の境界を抽出する
         
         """
+        # セルの大きさを考慮した画像
+        img_node = np.zeros(
+            shape=(img.shape[0], img.shape[1]),
+            dtype=np.uint8,
+        )
+        for i in range(img.shape[0]):
+            for j in range(img.shape[1]):
+                if img[i, j] == 255:
+                    img_node[i, j] = 255
+                    img_node[i+1, j] = 255
+                    img_node[i, j+1] = 255
+                    img_node[i+1, j+1] = 255
+
         # 境界を抽出する
         boundary = [begin]
         search_cnt = 0
@@ -99,9 +112,9 @@ class PolygonDecomposer():
             for k in range(4):
                 i = bi+cls.DI[(search_cnt+k)%4]
                 j = bj+cls.DJ[(search_cnt+k)%4]
-                if not 0 <= i < img.shape[0]: continue
-                if not 0 <= j < img.shape[1]: continue
-                if img[i, j] == img[begin]:
+                if not 0 <= i < img_node.shape[0]: continue
+                if not 0 <= j < img_node.shape[1]: continue
+                if img_node[i, j] == img_node[begin]:
                     boundary.append((i, j))
                     search_cnt = (search_cnt+k-1)%4
                     break
@@ -127,6 +140,7 @@ class PolygonDecomposer():
         """
         assert type(img_) == np.ndarray
         assert img_.dtype == np.uint8
+        assert np.all((img_ == 0) | (img_ == 255))
         assert len(img_.shape) == 2 # 1 チャンネル画像
         img = img_.copy()
 
@@ -156,28 +170,12 @@ class PolygonDecomposer():
             cnt += 1
             if np.array_equal(diff, np.zeros(diff.shape, dtype=np.uint8)): break
             else: geometry.append(cls._extract_boundary_vertices(diff))
-
-        # x+ および y+ 側の境界は開区間で表現
-        # 外周を追加した分を差し引く
+        
+        # 外周を追加した分，調整
         for i in range(len(geometry)):
             for j in range(len(geometry[i])):
-                shift = list()
-                points = copy.deepcopy(geometry[i][j])
-                points = [points[-1]] + points + [points[0]]
-                for k in range(1, len(points)-1):
-                    assert len(points[k]) == 2
-                    i1, j1 = points[k-1]
-                    i2, j2 = points[k]
-                    i3, j3 = points[k+1]
-                    di1, di2 = i2-i1, i3-i2
-                    dj1, dj2 = j2-j1, j3-j2
-                    assert (di1==0 and di2!=0 and dj1!=0 and dj2==0) or \
-                        (di1!=0 and di2==0 and dj1==0 and dj2!=0)
-                    shift.append((1 if dj1 < 0 or dj2 < 0 else 0, 1 if di1 > 0 or di2 > 0 else 0))
-                assert len(shift) == len(geometry[i][j])
-                for k in range(len(shift)):
-                    ii, jj = shift[k]
-                    geometry[i][j][k] = (geometry[i][j][k][0]+ii-1, geometry[i][j][k][1]+jj-1)
+                for k in range(len(geometry[i][j])):
+                    geometry[i][j][k] = (geometry[i][j][k][0]-1, geometry[i][j][k][1]-1)
         return geometry
 
 
@@ -196,3 +194,4 @@ if __name__ == '__main__':
             polygon = polygon + [polygon[0]]
             plt.plot([x for x, _ in polygon], [y for _, y in polygon], color=list(colors.TABLEAU_COLORS.values())[i])
     plt.show()
+    
