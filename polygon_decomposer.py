@@ -124,11 +124,17 @@ class PolygonDecomposer():
         
         入力された二値画像を多角形の重ね合わせに分解する
 
+        BUG: 幅が 1px の長方形を含むときに正常動作しない → 画像を二倍して処理することにした
+        TODO: OpenCV を使って輪郭抽出すれば高速化できそう
+        
         """
         assert type(img_) == np.ndarray
         assert img_.dtype == np.uint8
         assert len(img_.shape) == 2 # 1 チャンネル画像
         img = img_.copy()
+
+        # 幅が 1 の形状があると輪郭の追跡が大変だから二倍する
+        img = cv2.resize(img, (img.shape[1]*2, img.shape[0]*2), interpolation=cv2.INTER_NEAREST)
 
         # 外周を追加
         img = np.insert(img, 0, 255, axis=0)
@@ -157,7 +163,8 @@ class PolygonDecomposer():
             if np.array_equal(diff, np.zeros(diff.shape, dtype=np.uint8)): break
             else: geometry.append(cls._extract_boundary_vertices(diff))
 
-        # x+ および y+ 側の境界は開区間で表現
+        # x+ および y+ 側の境界は +2 する（ピクセル上では半開区間で表現されているがモデリング時には閉区間で形状を指定するから）
+        # +1 じゃなくて +2 なのは元画像を二倍しているから
         # 外周を追加した分を差し引く
         for i in range(len(geometry)):
             for j in range(len(geometry[i])):
@@ -173,11 +180,18 @@ class PolygonDecomposer():
                     dj1, dj2 = j2-j1, j3-j2
                     assert (di1==0 and di2!=0 and dj1!=0 and dj2==0) or \
                         (di1!=0 and di2==0 and dj1==0 and dj2!=0)
-                    shift.append((1 if dj1 < 0 or dj2 < 0 else 0, 1 if di1 > 0 or di2 > 0 else 0))
+                    shift.append((2 if dj1 < 0 or dj2 < 0 else 0, 2 if di1 > 0 or di2 > 0 else 0))
                 assert len(shift) == len(geometry[i][j])
                 for k in range(len(shift)):
                     ii, jj = shift[k]
                     geometry[i][j][k] = (geometry[i][j][k][0]+ii-1, geometry[i][j][k][1]+jj-1)
+
+        # 二倍した分をもとに戻す
+        for i in range(len(geometry)):
+            for j in range(len(geometry[i])):
+                for k in range(len(geometry[i][j])):
+                    geometry[i][j][k] = (int(geometry[i][j][k][0]*0.5), int(geometry[i][j][k][1]*0.5))
+
         return geometry
 
 
@@ -186,7 +200,7 @@ if __name__ == '__main__':
     original = np.array(original, dtype=np.uint8)
     geometry = PolygonDecomposer.decompose(original)
     restored = PolygonDecomposer.draw_from_polygons(original.shape, geometry)
-    print(np.array_equal(original, restored))   # x+, y+ 側の座標値は開区間としているため一致しない
+    print(np.array_equal(original, restored))   # x+, y+ 側の座標値は +2 しているため一致しない
 
 
     import matplotlib.pyplot as plt
