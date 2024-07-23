@@ -79,7 +79,7 @@ class PolygonDecomposer():
         # 各グループを代表する座標を取得
         begins = list()
         for group in uf.all_group_members().values():
-            if img[to_(group[0])] == 255: begins.append(to_(group[0]))
+            if img[to_(min(group))] == 255: begins.append(to_(min(group)))
         
         # 境界の節点を抽出
         return [cls._extract_boundary_vertex(img, begin) for begin in begins]
@@ -127,6 +127,7 @@ class PolygonDecomposer():
         """
         assert type(img_) == np.ndarray
         assert img_.dtype == np.uint8
+        assert np.all((img_ == 0) | (img_ == 255))
         assert len(img_.shape) == 2 # 1 チャンネル画像
         img = img_.copy()
 
