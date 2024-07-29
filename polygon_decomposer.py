@@ -131,10 +131,12 @@ class PolygonDecomposer():
         img = img_.copy()
 
         # 外周を追加
-        img = np.insert(img, 0, 255, axis=0)
-        img = np.insert(img, img.shape[0], 255, axis=0)
-        img = np.insert(img, 0, 255, axis=1)
-        img = np.insert(img, img.shape[1], 255, axis=1)
+        WHITE = 255
+        BLACK = 0
+        img = np.insert(img, 0, BLACK, axis=0)
+        img = np.insert(img, img.shape[0], BLACK, axis=0)
+        img = np.insert(img, 0, BLACK, axis=1)
+        img = np.insert(img, img.shape[1], BLACK, axis=1)
 
         # 交互に塗りつぶしながら境界を抽出
         geometry = list()
@@ -145,7 +147,7 @@ class PolygonDecomposer():
                 arr=tmp,
                 begin_y=0,
                 begin_x=0,
-                rcolor=0 if cnt % 2 == 0 else 255,
+                rcolor=WHITE if cnt % 2 == 0 else BLACK,
                 direction=4,
             )
             diff = (255 - np.abs(img.astype(int) - tmp.astype(int))).astype(np.uint8)
