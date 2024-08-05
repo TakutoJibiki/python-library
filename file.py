@@ -53,7 +53,7 @@ class File:
             os.rename(src=file, dst=file.replace('#', ''))
 
     @staticmethod
-    def mkdir(path: str, delete: bool):
+    def mkdir(path: str, delete: bool, verbose: bool = True):
         """
         
         ディレクトリが存在していたら削除して作り直す
@@ -63,8 +63,10 @@ class File:
             if delete:
                 shutil.rmtree(path)
                 os.makedirs(path)
+                if verbose: print(f"\tRemoved and created {path}")
         else:
             os.makedirs(path)
+            if verbose: print(f"\tCreated {path}")
 
 
 class Gif:
