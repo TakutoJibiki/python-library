@@ -5,7 +5,7 @@ import matplotlib.animation as animation
 from collections import deque
 
 
-class UnionFind():
+class UnionFind:
     """
     
     https://note.nkmk.me/python-union-find/
