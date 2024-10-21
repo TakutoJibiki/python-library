@@ -5,13 +5,15 @@ import matplotlib.animation as animation
 from collections import deque
 
 
-class UnionFind():
+class UnionFind:
     """
     
+    素集合データセット
     https://note.nkmk.me/python-union-find/
     
     """
     def __init__(self, n):
+        """ n (int): ノード数 """
         self.n = n
         self.parents = [-1] * n
 
@@ -23,6 +25,7 @@ class UnionFind():
             return self.parents[x]
 
     def union(self, x, y):
+        """ ノードxとノードyを統合する """
         x = self.find(x)
         y = self.find(y)
 
@@ -49,6 +52,7 @@ class UnionFind():
         return [i for i, x in enumerate(self.parents) if x < 0]
 
     def group_count(self):
+        """ グループ数を返す """
         return len(self.roots())
 
     def all_group_members(self):
