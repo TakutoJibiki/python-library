@@ -86,7 +86,7 @@ def evaluate(pop: list, history: History, analyzer, obj_func):
         pop (list): 評価する個体群
         history (History): History クラスのインスタンス
         analyzer (function(pop: list)): 個体群の場計算を行う関数
-        obj_func (function(results: any)): 目的関数
+        obj_func (function(results: any)): 目的関数．引数の results には analyzer の戻り値が入る．
 
     """
     # 解析する必要があるか

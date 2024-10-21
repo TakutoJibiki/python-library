@@ -6,7 +6,7 @@ from algorithm import FloodFill, UnionFind
 import copy
 
 
-class PolygonDecomposer():
+class PolygonDecomposer:
     DI = [0, 1, 0, -1]
     DJ = [1, 0, -1, 0]
 
