@@ -197,16 +197,23 @@ class PolygonDecomposer:
 
 
 if __name__ == '__main__':
-    original = cv2.imread("./input_sample.bmp", cv2.IMREAD_GRAYSCALE)
+    original = cv2.imread("./resource/sample_input_small.bmp", cv2.IMREAD_GRAYSCALE)
     geometry = PolygonDecomposer.decompose(original)
     restored = PolygonDecomposer.draw_from_polygons(original.shape, geometry)
     print(np.array_equal(original, restored))   # x+, y+ 側の座標値は +2 しているため一致しない
 
+    from IO import show_img
+    show_img(img=original, title="original", is_save=True)
+    show_img(img=restored, title="restored", is_save=True)
 
     import matplotlib.pyplot as plt
     from matplotlib import colors
     for i, polygons in enumerate(geometry):
         for polygon in polygons:
             polygon = polygon + [polygon[0]]
-            plt.plot([x for x, _ in polygon], [y for _, y in polygon], color=list(colors.TABLEAU_COLORS.values())[i])
+            plt.plot(
+                [x for x, _ in polygon],
+                [y for _, y in polygon],
+                color=list(colors.TABLEAU_COLORS.values())[i],
+            )
     plt.show()
