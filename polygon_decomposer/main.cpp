@@ -6,7 +6,7 @@
 #include <queue>
 #include <execution>
 #include "stdout.hpp"
-#include "algorithm.hpp" /* TODO:cxx-libraryの コミットID */
+#include "algorithm.hpp" /* cxx-library: 3059aee6a64d37f5c94308826e85cb7e783cfaa3 */
 
 using std::cout, std::endl;
 using int2 = std::pair<int, int>;
@@ -139,7 +139,7 @@ std::vector<std::vector<int2>> extract_boundaries(const Mat &img)
             begins.emplace_back(min_i, min_j);
     }
 
-    /* 境界の節点を抽出 */
+    /* 境界の頂点を抽出 */
     std::vector<std::vector<int2>> boundaries(begins.size());
     for (int i = 0; i < boundaries.size(); ++i)
         boundaries[i] = extract_boundary(img, begins[i]);
@@ -200,16 +200,58 @@ std::vector<std::vector<std::vector<int2>>> decompose(const Mat &img)
         geometry.emplace_back(extract_boundaries(diff));
     }
 
+    /* x+ および y+ 側の境界は +2 する（ピクセル上では半開区間で表現されているがモデリング時には閉区間で形状を指定するから） */
+    /* +1 じゃなくて +2 なのは元画像を二倍しているから */
+    /* 外周を追加した分を差し引く */
+    for (int i = 0; i < geometry.size(); ++i)
+    {
+        for (int j = 0; j < geometry[i].size(); ++j)
+        {
+            std::vector<int2> shift;
+            auto points = geometry[i][j];
+            auto points_front = points.front();
+            auto points_back = points.back();
+            points.emplace(points.begin(), points_back);
+            points.emplace_back(points_front);
+
+            for (int k = 1; k < points.size() - 1; ++k)
+            {
+                auto [i1, j1] = points[k - 1];
+                auto [i2, j2] = points[k];
+                auto [i3, j3] = points[k + 1];
+                auto [di1, di2] = int2{i2 - i1, i3 - i2};
+                auto [dj1, dj2] = int2{j2 - j1, j3 - j2};
+
+                assert((di1 == 0 and di2 != 0 and dj1 != 0 and dj2 == 0) or
+                       (di1 != 0 and di2 == 0 and dj1 == 0 and dj2 != 0));
+                int shift_i = (dj1 < 0 or dj2 < 0) ? 2 : 0;
+                int shift_j = (di1 > 0 or di2 > 0) ? 2 : 0;
+                shift.emplace_back(shift_i, shift_j);
+            }
+            assert(shift.size() == geometry[i][j].size());
+
+            for (int k = 0; k < shift.size(); ++k)
+            {
+                geometry[i][j][k].first += shift[k].first - 1;
+                geometry[i][j][k].second += shift[k].second - 1;
+            }
+        }
+    }
+
+    /* 二倍した分をもとに戻す */
+    for (int i = 0; i < geometry.size(); ++i)
+        for (int j = 0; j < geometry[i].size(); ++j)
+            for (int k = 0; k < geometry[i][j].size(); ++k)
+                geometry[i][j][k] = {int(geometry[i][j][k].first * 0.5),
+                                     int(geometry[i][j][k].second * 0.5)};
+
     return geometry;
 }
 
 int main(void)
 {
-    const std::string IN_PATH = "./in";
-    const std::string OUT_PATH = "./out";
-
     /* 入力読み込み */
-    std::ifstream ifs_in(IN_PATH);
+    std::ifstream ifs_in("./sample_large_in.txt");
     int H, W;
     ifs_in >> H >> W;
     Mat img(H, std::vector<int>(W));
@@ -220,32 +262,6 @@ int main(void)
     /* polygon_decomposer */
     auto geometry = decompose(img);
     cout << geometry << endl;
-
-    /* 出力読み込み */
-    // std::vector<std::vector<std::vector<int2>>> geometry;
-    // {
-    //     std::ifstream ifs_out(OUT_PATH);
-    //     int N;
-    //     ifs_out >> N;
-    //     for (int i = 0; i < N; ++i)
-    //     {
-    //         int M;
-    //         ifs_out >> M;
-    //         std::vector<int> mm(M);
-    //         for (auto &j : mm)
-    //             ifs_out >> j;
-    //         std::vector<std::vector<int2>> polygons;
-    //         for (auto j : mm)
-    //         {
-    //             std::vector<int2> polygon(j);
-    //             for (auto &[y, x] : polygon)
-    //                 ifs_out >> y >> x;
-    //             polygons.emplace_back(polygon);
-    //         }
-    //         geometry.emplace_back(polygons);
-    //     }
-    // }
-    // cout << geometry << endl;
 
     return 0;
 }
