@@ -248,20 +248,37 @@ std::vector<std::vector<std::vector<int2>>> decompose(const Mat &img)
     return geometry;
 }
 
-int main(void)
+int main(int argc, char *argv[])
 {
+    assert(argc == 2);
+
     /* 入力読み込み */
-    std::ifstream ifs_in("./sample_large_in.txt");
+    std::ifstream ifs(argv[1]);
+    assert(ifs);
     int H, W;
-    ifs_in >> H >> W;
+    ifs >> H >> W;
     Mat img(H, std::vector<int>(W));
     for (int i = 0; i < H; ++i)
         for (int j = 0; j < W; ++j)
-            ifs_in >> img[i][j];
+            ifs >> img[i][j];
 
     /* polygon_decomposer */
     auto geometry = decompose(img);
-    cout << geometry << endl;
+
+    /* 結果を出力 */
+    std::ofstream ofs(argv[1]);
+    assert(ofs);
+    ofs << geometry.size() << endl;
+    for (auto g : geometry)
+    {
+        ofs << endl << g.size();
+        for (auto gg : g)
+            ofs << " " << gg.size();
+        ofs << endl;
+        for (auto gg : g)
+            for (auto ggg : gg)
+                ofs << ggg.first << " " << ggg.second << endl;
+    }
 
     return 0;
 }

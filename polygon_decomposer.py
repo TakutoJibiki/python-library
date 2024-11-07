@@ -4,6 +4,11 @@ import sys
 sys.path.append("./python_library")
 from algorithm import FloodFill, UnionFind
 import copy
+import multiprocessing
+import uuid
+import os
+import subprocess
+from pathlib import Path
 
 
 class PolygonDecomposer:
@@ -191,8 +196,49 @@ class PolygonDecomposer:
         for i in range(len(geometry)):
             for j in range(len(geometry[i])):
                 for k in range(len(geometry[i][j])):
-                    geometry[i][j][k] = (int(geometry[i][j][k][0]*0.5), int(geometry[i][j][k][1]*0.5))
+                    geometry[i][j][k] = [int(geometry[i][j][k][0]*0.5), int(geometry[i][j][k][1]*0.5)]
 
+        return geometry
+    
+    @staticmethod
+    def cxx_decompose(img: np.ndarray) -> list:
+        """
+        
+        C++ 版の decompose
+
+        """
+        def write_img(img: np.array, path: str) -> None:
+            with open(path, 'w') as f:
+                H, W = img.shape
+                f.write(f"{H} {W}\n")
+                for h in range(H):
+                    f.write(" ".join([str(img[h][w]) for w in range(W)])+"\n")
+
+
+        def read_geometry(path: str) -> list:
+            geometry = list()
+            with open(path, 'r') as f:
+                N = int(f.readline().rstrip())
+                f.readline()
+                for _ in range(N):
+                    points_num = [int(i) for i in f.readline().rstrip().split(" ")][1:]
+                    boundaries = list()
+                    for n in points_num:
+                        boundary = [[int(i) for i in f.readline().rstrip().split(" ")] for _ in range(n)]
+                        boundaries.append(boundary)
+                    geometry.append(boundaries)
+                    f.readline()
+            os.remove(path)
+            return geometry
+
+        assert img.dtype == np.uint8
+        assert multiprocessing.current_process().name == 'MainProcess'  # 並列処理禁止
+
+        exe_path = Path(__file__).parent / "polygon_decomposer" / "cxx_decompose.exe"
+        filename = str(uuid.uuid4())
+        write_img(img, path=filename)
+        subprocess.call(args=[exe_path, filename])
+        geometry = read_geometry(filename)
         return geometry
 
 
