@@ -45,3 +45,30 @@ def str_to_list(str_):
     assert type(str_) == str, '引数には文字列を指定してください'
     ios = io.StringIO('{"tmp": ' + str_ + '}')
     return json.load(ios)["tmp"]
+
+
+def show_img(img: np.array, title: str, is_save: bool = False):
+    """
+    
+    np.array 形式の画像を matplotlib で出力する
+
+    """
+    import matplotlib.pyplot as plt
+    plt.cla()
+    plt.clf()
+
+    plt.imshow(img)
+    max_y, max_x = img.shape[0]-0.5, img.shape[1]-0.5
+    min_y, min_x = -0.5, -0.5
+    plt.ylim(min_y-0.5, max_y+0.5)
+    plt.xlim(min_x-0.5, max_x+0.5)
+    if max(img.shape) < 30:
+        plt.yticks(np.linspace(start=min_y, stop=max_y, num=img.shape[0]+1))
+        plt.xticks(np.linspace(start=min_x, stop=max_x, num=img.shape[1]+1), rotation=90)
+    plt.gca().invert_yaxis()
+    plt.grid()
+
+    if is_save: plt.savefig(f"{title}.png")
+    else: plt.show()
+
+    plt.close()
