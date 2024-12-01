@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from matplotlib import cm
 import numpy as np
+import cv2
 
 
 # TODO: ngnet = NGnet([NGnet.Basis(mux=mux, muy=muy, r=STDEV) for mux, muy in BASIS_MUS]) の形で楽できるようにコンストラクタを修正
@@ -74,13 +75,19 @@ class NGnet:
             ])
             return NGnet.Basis(mux=mux, muy=muy, sx=sx, sy=sy, theta=theta)
 
-    def __init__(self, bases: list[Basis], grid: tuple[np.ndarray, np.ndarray]):
+    def __init__(self, bases: list[Basis], grid: tuple[np.ndarray, np.ndarray], symmetry: bool):
+        """
+        
+        Note:
+            grid は格子の頂点の座標ではなく形状関数を計算する座標値
+        
+        """
         self.bases = bases
         self.grid = grid    # numpy の meshgrid の (X, Y)
+        self.symmetry = symmetry
 
     def get_dist(self, weights: list):
         # TODO: 行列計算に対応させる
-        # TODO: 厳密には要素の中心で形状関数を計算できていない
         gauss = [basis.gaussian_2d(self.grid[0], self.grid[1]) for basis in self.bases]
         gauss_sum = sum(gauss)
         normalized = [g/gauss_sum for g in gauss]
@@ -89,6 +96,11 @@ class NGnet:
         for i in range(shape_func.shape[0]):
             for j in range(shape_func.shape[1]):
                 dist[i][j] = (shape_func[i][j] >= 0)*1.0
+        
+        if self.symmetry:
+            tmp = cv2.rotate(dist, cv2.ROTATE_180)
+            dist = np.concatenate([dist, tmp])
+
         return dist
 
     @staticmethod
@@ -145,8 +157,10 @@ if __name__ == '__main__':
 
     def basic_sample():
         # 位置と半径を固定
-        X = np.arange(-15E-3, 15E-3+0.075E-3-0.001E-3, 0.075E-3)
-        Y = np.arange(12E-3, 44.4E-3+0.075E-3-0.001E-3, 0.075E-3)
+        # X = np.arange(-15E-3, 15E-3, 0.075E-3) + (0.075E-3)*0.5
+        # Y = np.arange(12E-3, 44.4E-3, 0.075E-3) + (0.075E-3)*0.5
+        X = np.arange(-15E-3, 15E-3, 1.5E-3) + (1.5E-3)*0.5
+        Y = np.arange(12E-3, 44.4E-3, 1.8E-3) + (1.8E-3)*0.5
         STDEV = 0.003850402576354841
         BASIS_MUS = [[-0.013,0.014], [-0.013,0.01968], [-0.013,0.02536], [-0.013,0.031039999999999998], [-0.013,0.03672], [-0.013,0.0424], [-0.0078,0.014], [-0.0078,0.01968], [-0.0078,0.02536], [-0.0078,0.031039999999999998], [-0.0078,0.03672], [-0.0078,0.0424], [-0.0026,0.014], [-0.0026,0.01968], [-0.0026,0.02536], [-0.0026,0.031039999999999998], [-0.0026,0.03672], [-0.0026,0.0424], [0.0026,0.014], [0.0026,0.01968], [0.0026,0.02536], [0.0026,0.031039999999999998], [0.0026,0.03672], [0.0026,0.0424], [0.0078,0.014], [0.0078,0.01968], [0.0078,0.02536], [0.0078,0.031039999999999998], [0.0078,0.03672], [0.0078,0.0424], [0.013,0.014], [0.013,0.01968], [0.013,0.02536], [0.013,0.031039999999999998], [0.013,0.03672], [0.013,0.0424]]
         grid = np.meshgrid(X, Y)
@@ -170,6 +184,6 @@ if __name__ == '__main__':
         dist = ngnet.get_dist(weights=weights)
         NGnet.plot(X=grid[0], Y=grid[1], bases=bases, shape_bin=dist)
 
-    # basic_sample()
-    generalized_sample()
+    basic_sample()
+    # generalized_sample()
     
