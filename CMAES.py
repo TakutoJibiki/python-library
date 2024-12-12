@@ -25,9 +25,13 @@ class CMAES:
                     [a_2, b_2],
                     ...
                 ]
-            constraints (list): boolean のリスト．True を指定すると search_interval の範囲内で探索する．範囲を超えるとペナルティを課す．
+            constraints (list): 制約範囲の上下限からなるリスト．制約を指定しない次元には "None" を指定する．
+                ex: [(x1_l, x1_h), (x2_l, x2_h), None, ...]
             penalty (float): 制約違反時のペナルティのベース．実際にはこの値に違反量を加算してペナルティとする．制約を満たす範囲での最悪の評価値を指定すればよい．
             lambda_ (int): 集団サイズ．何も指定しなかったら int(4+3*ln(N)) が指定される．
+
+        Note:
+            CMA-ES 中での正規化は search_intervals の値に基づく
 
         """
         # エラーチェック
@@ -36,7 +40,7 @@ class CMAES:
             or (constraints is not None and penalty is not None)
 
         # デフォルト値
-        if constraints is None: constraints = [False] * len(search_intervals)
+        if constraints is None: constraints = [None] * len(search_intervals)
         else: assert len(search_intervals) == len(constraints)
         if lambda_ is None: lambda_ = int(4 + 3 * np.log(len(search_intervals)))
 
@@ -79,17 +83,30 @@ class CMAES:
             ret.append(ind)
         return ret
     
+    def _scale_inv(self, dim: int, val: float):
+        """
+        
+        [a_i, b_i] を [0, 1] にスケールする
+        
+        """
+        a, b = self._search_int[dim]
+        return (val-a)/(b-a)
+    
     def generation_step(self):
-        is_feasible_ = lambda x, constraint: 0.0 <= x <= 1.0 or constraint == False
+        def is_feasible_(dim: int, val: float):
+            constraint = self._constraints[dim]
+            if constraint == None: return True
+            l, h = [self._scale_inv(dim=dim, val=i) for i in constraint]
+            return (l <= val <= h)
 
         def is_feasible(ind):
-            ret = [is_feasible_(i, c) for i, c in zip(ind, self._constraints)]
-            return all(ret)
+            return all([is_feasible_(dim=idx, val=i) \
+                        for idx, i in enumerate(ind)])
         
         def distance(ind):
             ret = 0
-            for i, c in zip(ind, self._constraints):
-                if not is_feasible_(i, c): ret += abs(i-0.5)
+            for idx, i in enumerate(ind):
+                if not is_feasible_(dim=idx, val=i): ret += abs(i-0.5)
             return ret*abs(self._penalty)
         
         # 新たな世代の個体群を生成
@@ -179,12 +196,12 @@ if __name__ == "__main__":
 
     cmaes = CMAES(
         obj_func=obj_func,
-        search_intervals=[[-10, 0], [-10, 10]],
-        constraints=[True, False],
+        search_intervals=[[-5-2.5, -5+2.5], [-10, 10]],
+        constraints=[[-10, 0], None],
         penalty=-300,
     )
     
-    for gen in range(50):
+    for gen in range(100):
         cmaes.generation_step()
         print(
             f'\rGen. {format(gen+1, "0>3")}  |  ' +
