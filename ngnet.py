@@ -109,8 +109,8 @@ class NGnet:
         for i in range(self.basis_num):
             ax.add_patch(Ellipse(
                 xy=poss[i],
-                width=rs[i][0],
-                height=rs[i][1],
+                width=rs[i][0]*2,   # 楕円の“直径”
+                height=rs[i][1]*2,
                 angle=math.degrees(thetas[i]),
                 ec="red",
                 fill=False,
